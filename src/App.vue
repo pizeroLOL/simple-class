@@ -9,6 +9,7 @@ import type {
 } from './types'
 import Cses from '../cses.json'
 import Config from '../config.json'
+import { TransitionGroup } from 'vue'
 
 const rawCses = Cses as CsesType
 const timeFromString = (s: string) =>
@@ -53,9 +54,7 @@ const schedules = rawCses.schedules.map((it) => ({
         }
         // 补前
         if (acc.length == 0) {
-          return now.startTime == 0
-            ? [now]
-            : acc.concat([{ ...defaultClass, endTime: now.startTime }, now])
+          return now.startTime == 0 ? [now] : acc.concat([now])
         }
         const back = acc[acc.length - 1]
         // 修正
@@ -67,17 +66,10 @@ const schedules = rawCses.schedules.map((it) => ({
         if (back.endTime == now.startTime) {
           return acc.concat(now)
         }
-        return acc.concat([
-          { ...defaultClass, subject: '下课', startTime: back.endTime, endTime: now.startTime },
-          now,
-        ])
+        return acc.concat([now])
       }, [] as TempClass[])
     // 补后
-    return tmp.length == 0
-      ? [defaultClass]
-      : tmp[tmp.length - 1].endTime < 24 * 60 * 60 - 1
-        ? tmp.concat({ ...defaultClass, startTime: tmp[tmp.length - 1].endTime })
-        : tmp
+    return tmp.length == 0 ? [defaultClass] : tmp
   })(),
 }))
 
@@ -105,67 +97,108 @@ const getNow = (oddOrEven: 'odd' | 'even', schedules: TempSchedule[]) => {
 
 const nowClasses = ref([{ value: defaultClass, index: 0 }])
 const nowTime = ref('00:00:00')
-const nowTimeNumber = ref('00:00:00')
+const eta = ref('00:00:00')
+const dateInfo = ref('2025/2/12 周二')
+const weekdayMap = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+
 const timePad = (num: number) => num.toString().padStart(2, '0')
 const formatTime = (num: number) =>
   `${timePad(Math.floor(num / 60 / 60))}:${timePad(Math.floor((num / 60) % 60))}:${timePad(Math.floor(num % 60))}`
 const formatDateTime = (date: Date) =>
   `${timePad(date.getHours())}:${timePad(date.getMinutes())}:${timePad(date.getSeconds())}`
-setInterval(() => {
+const formatDateInfo = (date: Date) =>
+  `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate() + 1} ${weekdayMap[date.getDay()]}`
+setInterval(async () => {
   const datetime = new Date()
   nowTime.value = formatDateTime(datetime)
+  dateInfo.value = formatDateInfo(datetime)
   const oddOrEven = getOddOrEven(datetime.getUTCMilliseconds(), startUTC)
+  const tempTime =
+    datetime.getHours() * 60 * 60 + datetime.getMinutes() * 60 + datetime.getSeconds()
   const tempSchedules = schedules.filter(
     (schedule) =>
       csesWeekdayToDate(schedule.enable_day) == datetime.getDay() &&
       ['all', oddOrEven].some((it) => it == schedule.weeks),
   )
-  const tempTime =
-    datetime.getHours() * 60 * 60 + datetime.getMinutes() * 60 + datetime.getSeconds()
-  nowClasses.value = getNow(oddOrEven, tempSchedules)
-    .map((value, index) => ({ value: value, index }))
-    .filter(({ value }) => value.endTime > tempTime)
-  nowTimeNumber.value = formatTime(nowClasses.value[0].value.endTime - tempTime)
+  const todayClasses = getNow(oddOrEven, tempSchedules).map((value, index) => ({
+    value: value,
+    index,
+  }))
+  const tempClasses = todayClasses.filter(({ value }) => value.endTime > tempTime)
+  if (tempClasses.length == 0) {
+    nowClasses.value = [{ value: defaultClass, index: 0 }]
+  } else if (tempClasses[0].value.startTime > tempTime) {
+    nowClasses.value = [
+      {
+        value: {
+          ...defaultClass,
+          startTime: todayClasses[tempClasses[0].index].value.endTime ?? 0,
+          endTime: tempClasses[0].value.startTime,
+          subject: '下课',
+        },
+        index: 0,
+      },
+    ].concat(tempClasses.map((i) => ({ ...i, index: i.index + 1 })))
+  }
+  eta.value = formatTime(nowClasses.value[0].value.endTime - tempTime)
 }, 1000)
-const weekdayMap = ['error', '周一', '周二', '周三', '周四', '周五', '周六', '周日']
 </script>
 
 <template>
-  <div class="fixed right-4 bottom-4 flex items-end justify-end text-stone-500 font-mono flex-col">
-    <div class="text-2xl lg:text-5xl">ETA: {{ nowTimeNumber }}</div>
+  <div
+    class="fixed right-4 bottom-4 flex items-end justify-end text-stone-500 font-mono flex-col gap-2"
+  >
+    <div class="text-xl lg:text-4xl">{{ dateInfo }}</div>
+    <div class="text-2xl lg:text-6xl">ETA: {{ eta }}</div>
     <div class="text-5xl lg:text-9xl">{{ nowTime }}</div>
   </div>
   <main class="px-8 min-h-dvh bg-stone-200 py-4">
-    <!-- <div class="text-7xl font-extralight">
-      {{ datetime }}
-    </div> -->
-    <div class="w-fit flex flex-col gap-4">
+    <TransitionGroup name="fade" tag="div" class="w-fit flex flex-col gap-8">
       <div
         v-for="({ value, index }, rowIndex) in nowClasses"
         :key="index"
         class="grid grid-cols-2 grid-rows-2 w-fit gap-1"
       >
         <div
-          class="col-start-1 row-start-1 row-end-3 text-5xl lg:text-6xl aria-expanded:text-6xl lg:aria-expanded:text-9xl"
+          class="col-start-1 row-start-1 row-end-3 text-5xl lg:text-6xl font-light aria-expanded:font-medium aria-expanded:text-6xl lg:aria-expanded:text-9xl"
           :aria-expanded="rowIndex == 0"
         >
           {{ value.subject }}
         </div>
         <div
-          class="col-start-2 row-start-1 w-fit self-end text:lg lg:text-xl aria-expanded:text-xl lg:aria-expanded:text-5xl"
+          class="col-start-2 row-start-1 w-fit self-end text:lg lg:text-xl font-light aria-expanded:font-medium aria-expanded:text-xl lg:aria-expanded:text-5xl"
           :aria-expanded="rowIndex == 0"
         >
           {{ value.room }}
         </div>
         <div
-          class="col-start-2 row-start-2 w-fit self-end text:lg lg:text-xl aria-expanded:text-xl lg:aria-expanded:text-5xl"
+          class="col-start-2 row-start-2 w-fit self-end text:lg lg:text-xl font-light aria-expanded:font-medium aria-expanded:text-xl lg:aria-expanded:text-5xl"
           :aria-expanded="rowIndex == 0"
         >
           {{ value.teacher }}
         </div>
       </div>
-    </div>
+    </TransitionGroup>
   </main>
 </template>
 
-<style scoped></style>
+<style scoped>
+.fade-move,
+.fade-enter-active,
+.fade-leave-active {
+  transition: all 0.5s cubic-bezier(0.55, 0, 0.1, 1);
+}
+
+/* 2. 声明进入和离开的状态 */
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: scaleY(0.01);
+}
+
+/* 3. 确保离开的项目被移除出了布局流
+以便正确地计算移动时的动画效果。 */
+.fade-leave-active {
+  position: absolute;
+}
+</style>
