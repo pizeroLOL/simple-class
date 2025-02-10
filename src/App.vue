@@ -130,8 +130,8 @@ const weekdayMap = ['error', '周一', '周二', '周三', '周四', '周五', '
 
 <template>
   <div class="fixed right-4 bottom-4 flex items-end justify-end text-stone-500 font-mono flex-col">
-    <div class="text-5xl">ETA: {{ nowTimeNumber }}</div>
-    <div class="text-9xl">{{ nowTime }}</div>
+    <div class="text-2xl lg:text-5xl">ETA: {{ nowTimeNumber }}</div>
+    <div class="text-5xl lg:text-9xl">{{ nowTime }}</div>
   </div>
   <main class="px-8 min-h-dvh bg-stone-200 py-4">
     <!-- <div class="text-7xl font-extralight">
@@ -140,11 +140,15 @@ const weekdayMap = ['error', '周一', '周二', '周三', '周四', '周五', '
     <div class="w-fit flex flex-col gap-4">
       <div v-for="{ value, index }, rowIndex in nowClasses" :key="index"
         class="grid grid-cols-2 grid-rows-2 w-fit gap-1">
-        <div class="col-start-1 row-start-1 row-end-3 text-6xl aria-expanded:text-9xl" :aria-expanded="rowIndex == 0">{{
-          value.subject }}</div>
-        <div class="col-start-2 row-start-1 w-fit self-end text-xl aria-expanded:text-5xl"
+        <div
+          class="col-start-1 row-start-1 row-end-3 text-5xl lg:text-6xl aria-expanded:text-6xl lg:aria-expanded:text-9xl"
+          :aria-expanded="rowIndex == 0">{{
+            value.subject }}</div>
+        <div
+          class="col-start-2 row-start-1 w-fit self-end text:lg lg:text-xl aria-expanded:text-xl lg:aria-expanded:text-5xl"
           :aria-expanded="rowIndex == 0">{{ value.room }}</div>
-        <div class="col-start-2 row-start-2 w-fit self-end text-xl aria-expanded:text-5xl"
+        <div
+          class="col-start-2 row-start-2 w-fit self-end text:lg lg:text-xl aria-expanded:text-xl lg:aria-expanded:text-5xl"
           :aria-expanded="rowIndex == 0">{{ value.teacher }}</div>
       </div>
     </div>
