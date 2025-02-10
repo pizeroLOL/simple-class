@@ -104,10 +104,11 @@ const getNow = (oddOrEven: 'odd' | 'even', schedules: TempSchedule[]) => {
 }
 
 const nowClasses = ref([{ value: defaultClass, index: 0 }])
-const nowTime = ref("00:00:00")
+const nowTime = ref('00:00:00')
 const nowTimeNumber = ref('00:00:00')
 const timePad = (num: number) => num.toString().padStart(2, '0')
-const formatTime = (num: number) => `${timePad(Math.floor(num / 60 / 60))}:${timePad(Math.floor(num / 60 % 60))}:${timePad(Math.floor(num % 60))}`
+const formatTime = (num: number) =>
+  `${timePad(Math.floor(num / 60 / 60))}:${timePad(Math.floor((num / 60) % 60))}:${timePad(Math.floor(num % 60))}`
 const formatDateTime = (date: Date) =>
   `${timePad(date.getHours())}:${timePad(date.getMinutes())}:${timePad(date.getSeconds())}`
 setInterval(() => {
@@ -119,7 +120,8 @@ setInterval(() => {
       csesWeekdayToDate(schedule.enable_day) == datetime.getDay() &&
       ['all', oddOrEven].some((it) => it == schedule.weeks),
   )
-  const tempTime = datetime.getHours() * 60 * 60 + datetime.getMinutes() * 60 + datetime.getSeconds()
+  const tempTime =
+    datetime.getHours() * 60 * 60 + datetime.getMinutes() * 60 + datetime.getSeconds()
   nowClasses.value = getNow(oddOrEven, tempSchedules)
     .map((value, index) => ({ value: value, index }))
     .filter(({ value }) => value.endTime > tempTime)
@@ -138,23 +140,32 @@ const weekdayMap = ['error', '周一', '周二', '周三', '周四', '周五', '
       {{ datetime }}
     </div> -->
     <div class="w-fit flex flex-col gap-4">
-      <div v-for="{ value, index }, rowIndex in nowClasses" :key="index"
-        class="grid grid-cols-2 grid-rows-2 w-fit gap-1">
+      <div
+        v-for="({ value, index }, rowIndex) in nowClasses"
+        :key="index"
+        class="grid grid-cols-2 grid-rows-2 w-fit gap-1"
+      >
         <div
           class="col-start-1 row-start-1 row-end-3 text-5xl lg:text-6xl aria-expanded:text-6xl lg:aria-expanded:text-9xl"
-          :aria-expanded="rowIndex == 0">{{
-            value.subject }}</div>
+          :aria-expanded="rowIndex == 0"
+        >
+          {{ value.subject }}
+        </div>
         <div
           class="col-start-2 row-start-1 w-fit self-end text:lg lg:text-xl aria-expanded:text-xl lg:aria-expanded:text-5xl"
-          :aria-expanded="rowIndex == 0">{{ value.room }}</div>
+          :aria-expanded="rowIndex == 0"
+        >
+          {{ value.room }}
+        </div>
         <div
           class="col-start-2 row-start-2 w-fit self-end text:lg lg:text-xl aria-expanded:text-xl lg:aria-expanded:text-5xl"
-          :aria-expanded="rowIndex == 0">{{ value.teacher }}</div>
+          :aria-expanded="rowIndex == 0"
+        >
+          {{ value.teacher }}
+        </div>
       </div>
     </div>
-
   </main>
-
 </template>
 
 <style scoped></style>
