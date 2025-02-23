@@ -27,6 +27,7 @@ const defaultClass = {
   endTime: 24 * 60 * 60 - 1,
   teacher: '无老师',
   room: '教室',
+  isClass: true,
 }
 
 const schedules = rawCses.schedules.map((it) => ({
@@ -41,6 +42,7 @@ const schedules = rawCses.schedules.map((it) => ({
           endTime: timeFromString(it.end_time),
           teacher: subjectInfo?.teacher ?? '无老师',
           room: subjectInfo?.room ?? '教室',
+          isClass: true,
         }
       })
       .sort((a, b) => a.startTime - b.startTime)
@@ -54,7 +56,9 @@ const schedules = rawCses.schedules.map((it) => ({
         }
         // 补前
         if (acc.length == 0) {
-          return now.startTime == 0 ? [now] : acc.concat([now])
+          return now.startTime == 0
+            ? [now]
+            : acc.concat([{ ...defaultClass, endTime: now.startTime, isClass: false }, now])
         }
         const back = acc[acc.length - 1]
         // 修正
@@ -63,10 +67,21 @@ const schedules = rawCses.schedules.map((it) => ({
           back.endTime = now.startTime
           return acc.concat(now)
         }
+        // 无缝衔接课程
         if (back.endTime == now.startTime) {
           return acc.concat(now)
         }
-        return acc.concat([now])
+        // 添加下课
+        return acc.concat([
+          {
+            ...defaultClass,
+            subject: '下课',
+            startTime: back.endTime,
+            endTime: now.startTime,
+            isClass: false,
+          },
+          now,
+        ])
       }, [] as TempClass[])
     // 补后
     return tmp.length == 0 ? [defaultClass] : tmp
@@ -121,24 +136,19 @@ setInterval(async () => {
       ['all', oddOrEven].some((it) => it == schedule.weeks),
   )
   const todayClasses = getNow(oddOrEven, tempSchedules).map((value, index) => ({
-    value: value,
+    value,
     index,
   }))
-  const tempClasses = todayClasses.filter(({ value }) => value.endTime > tempTime)
+  // 是课程只要结束时间大于现在就行，而下课需要开始时间小于现在，同时结束时间大于现在
+  const tempClasses = todayClasses.filter(
+    ({ value }) =>
+      (value.isClass && value.endTime > tempTime) ||
+      (!value.isClass && value.startTime < tempTime && tempTime < value.endTime),
+  )
   if (tempClasses.length == 0) {
     nowClasses.value = [{ value: defaultClass, index: 0 }]
-  } else if (tempClasses[0].value.startTime > tempTime) {
-    nowClasses.value = [
-      {
-        value: {
-          ...defaultClass,
-          startTime: todayClasses[tempClasses[0].index].value.endTime ?? 0,
-          endTime: tempClasses[0].value.startTime,
-          subject: '下课',
-        },
-        index: 0,
-      },
-    ].concat(tempClasses.map((i) => ({ ...i, index: i.index + 1 })))
+  } else if (tempClasses[0].value.endTime > tempTime) {
+    nowClasses.value = tempClasses
   }
   eta.value = formatTime(nowClasses.value[0].value.endTime - tempTime)
 }, 1000)

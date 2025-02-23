@@ -43,6 +43,7 @@ export interface TempClass {
   teacher: string
   room: string
   subject: string
+  isClass: boolean
 }
 
 export interface TempSchedule {
