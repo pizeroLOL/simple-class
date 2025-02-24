@@ -84,7 +84,11 @@ const schedules = rawCses.schedules.map((it) => ({
         ])
       }, [] as TempClass[])
     // 补后
-    return tmp.length == 0 ? [defaultClass] : tmp
+    return tmp.length == 0
+      ? [defaultClass]
+      : tmp[tmp.length - 1].endTime < 24 * 60 * 60 - 1
+        ? tmp.concat({ ...defaultClass, startTime: tmp[tmp.length - 1].endTime, isClass: false })
+        : tmp
   })(),
 }))
 
@@ -155,26 +159,56 @@ setInterval(async () => {
 </script>
 
 <template>
-
   <main class="px-8 min-h-dvh bg-stone-200 py-4">
-    <div class="fixed right-4 bottom-4 flex items-end justify-end text-stone-500 font-mono flex-col gap-2">
+    <div
+      class="fixed right-4 bottom-4 flex items-end justify-end text-stone-500 font-mono flex-col gap-2"
+    >
       <div class="text-xl lg:text-4xl">{{ dateInfo }}</div>
       <div class="text-2xl lg:text-6xl">ETA: {{ eta }}</div>
       <div class="text-5xl lg:text-9xl">{{ nowTime }}</div>
     </div>
     <TransitionGroup name="fade" tag="div" class="w-fit flex flex-col gap-4 lg:gap-8">
-      <div v-for="({ value, index }, rowIndex) in nowClasses" :key="index"
-        class="grid grid-cols-2 grid-rows-2 w-fit gap-x-1 lg:gap-y-1">
+      <div
+        v-for="({ value, index }, rowIndex) in nowClasses"
+        :key="index"
+        class="grid grid-cols-2 grid-rows-2 w-fit gap-x-1 lg:gap-y-1"
+      >
         <div
-          :class="['col-start-1', 'row-start-1', 'row-end-3', rowIndex == 0 ? 'text-6xl' : 'text-4xl', rowIndex == 0 ? 'lg:text-9xl' : 'lg:text-6xl', rowIndex == 0 ? 'font-medium' : 'font-light']">
+          :class="[
+            'col-start-1',
+            'row-start-1',
+            'row-end-3',
+            rowIndex == 0 ? 'text-6xl' : 'text-4xl',
+            rowIndex == 0 ? 'lg:text-9xl' : 'lg:text-6xl',
+            rowIndex == 0 ? 'font-medium' : 'font-light',
+          ]"
+        >
           {{ value.subject }}
         </div>
         <div
-          :class="['col-start-2', 'row-start-1', 'w-fit', 'self-end', rowIndex == 0 ? 'text-xl' : 'text-sm', rowIndex == 0 ? 'lg:text-5xl' : 'lg:text-xl', rowIndex == 0 ? 'font-medium' : 'font-light']">
+          :class="[
+            'col-start-2',
+            'row-start-1',
+            'w-fit',
+            'self-end',
+            rowIndex == 0 ? 'text-xl' : 'text-sm',
+            rowIndex == 0 ? 'lg:text-5xl' : 'lg:text-xl',
+            rowIndex == 0 ? 'font-medium' : 'font-light',
+          ]"
+        >
           {{ value.room }}
         </div>
         <div
-          :class="['col-start-2', 'row-start-2', 'w-fit', 'self-end', rowIndex == 0 ? 'text-xl' : 'text-sm', rowIndex == 0 ? 'lg:text-5xl' : 'lg:text-xl', rowIndex == 0 ? 'font-medium' : 'font-light']">
+          :class="[
+            'col-start-2',
+            'row-start-2',
+            'w-fit',
+            'self-end',
+            rowIndex == 0 ? 'text-xl' : 'text-sm',
+            rowIndex == 0 ? 'lg:text-5xl' : 'lg:text-xl',
+            rowIndex == 0 ? 'font-medium' : 'font-light',
+          ]"
+        >
           {{ value.teacher }}
         </div>
       </div>
